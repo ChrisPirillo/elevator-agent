@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1CQ4D3VQ3L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1CQ4D3VQ3L');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- SEO & Metadata -->
+    <title>Elevator Agent - Retro Arcade Platformer</title>
+    <meta name="description" content="Infiltrate buildings, hack red doors, collect secret files, and dodge enemy agents in Elevator Agent. A retro 2600-style arcade platformer.">
+    <meta name="keywords" content="elevator agent, retro arcade game, 2600 style, platformer, browser game, html5 canvas game, pixel art, arcade action, free game">
+    <meta name="author" content="Chris Pirillo">
+    <link rel="canonical" href="https://pirillo.com/arcade/elevator-agent.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pirillo.com/arcade/elevator-agent.html">
+    <meta property="og:title" content="Elevator Agent - 2600 Edition">
+    <meta property="og:description" content="Infiltrate. Enter red doors. Ride elevators. Jump & shoot lights. A retro arcade experience.">
+    <meta property="og:image" content="https://pirillo.com/arcade/images/elevator-agent.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://pirillo.com/arcade/elevator-agent.html">
+    <meta name="twitter:title" content="Elevator Agent - 2600 Edition">
+    <meta name="twitter:description" content="Infiltrate. Enter red doors. Ride elevators. Jump & shoot lights. A retro arcade experience.">
+    <meta name="twitter:image" content="https://pirillo.com/arcade/images/elevator-agent.png">
+    <meta name="twitter:creator" content="@ChrisPirillo">
+
+    <!-- Performance Hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Elevator Agent",
+      "author": {
+        "@type": "Person",
+        "name": "Chris Pirillo",
+        "url": "https://pirillo.com"
+      },
+      "description": "Infiltrate buildings, enter red doors to get files, ride elevators, jump & shoot lights in this 2600-style retro arcade agent game.",
+      "genre": ["Platformer", "Arcade", "Retro"],
+      "gamePlatform": "Web Browser",
+      "image": "https://pirillo.com/arcade/images/elevator-agent.png",
+      "url": "https://pirillo.com/arcade/elevator-agent.html",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #000000;
+            --font-family: 'Press Start 2P', cursive;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            overflow: hidden;
+            touch-action: none;
+            font-family: var(--font-family);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow: hidden;
+        }
+        /* Scanlines */
+        #game-container::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0),
+                rgba(255, 255, 255, 0) 50%,
+                rgba(0, 0, 0, 0.4) 50%,
+                rgba(0, 0, 0, 0.4)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            font-size: 14px; 
+            z-index: 10;
+            background: #222;
+            border-bottom: 4px solid #555;
+            box-shadow: 0 4px 0 #000;
+        }
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .hud-label { color: #888; font-size: 10px; }
+        .hud-val { font-size: 16px; }
+        #score-val { color: #2ecc71; }
+        #level-val { color: #f1c40f; }
+        #file-val { color: #3498db; }
+        #hp-val { color: #e74c3c; }
+
+        #message-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: #2b2b2b;
+            padding: 40px;
+            border: 4px solid #d6e855;
+            box-shadow: 10px 10px 0 #000;
+            display: none;
+            z-index: 20;
+            width: 80%;
+            max-width: 600px;
+        }
+        #message-overlay h1 { 
+            margin-top: 0; 
+            color: #d44e4e; 
+            font-size: 24px;
+            line-height: 1.5;
+            text-transform: uppercase;
+        }
+        #message-overlay p { 
+            margin-bottom: 30px; 
+            color: #fff; 
+            font-size: 12px;
+            line-height: 2;
+        }
+        .btn {
+            background: #d44e4e;
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            font-family: var(--font-family);
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 4px 4px 0 #000;
+        }
+        .btn:hover { background: #f55; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
+        .btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #000; }
+
+        #touch-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 140px;
+            display: none;
+            pointer-events: none;
+            z-index: 15;
+        }
+        .dpad {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 140px;
+            height: 140px;
+            pointer-events: auto;
+        }
+        .action-btns {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 160px;
+            height: 80px;
+            pointer-events: auto;
+            display: flex;
+            gap: 20px;
+        }
+        .t-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px; 
+        }
+        .t-btn:active { background: rgba(255, 255, 255, 0.4); border-color: #fff; }
+        
+        .d-up { position: absolute; top: 0; left: 46px; width: 46px; height: 46px; }
+        .d-down { position: absolute; bottom: 0; left: 46px; width: 46px; height: 46px; }
+        .d-left { position: absolute; top: 46px; left: 0; width: 46px; height: 46px; }
+        .d-right { position: absolute; top: 46px; right: 0; width: 46px; height: 46px; }
+
+        .a-btn { width: 70px; height: 70px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-family: var(--font-family); }
+        .btn-jump { background: rgba(0, 255, 0, 0.1); border-color: #4f4; }
+        .btn-shoot { background: rgba(255, 0, 0, 0.1); border-color: #f44; }
+    </style>
+</head>
+<body>
+
+<main id="game-container">
+    <canvas id="gameCanvas">Your browser does not support the canvas element.</canvas>
+    
+    <header id="ui-layer">
+        <div class="hud-item">
+            <span class="hud-label">LEVEL</span>
+            <span id="level-val" class="hud-val">1</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">SCORE</span>
+            <span id="score-val" class="hud-val">0</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">FILES</span>
+            <span id="file-val" class="hud-val">0/0</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">HEALTH</span>
+            <span id="hp-val" class="hud-val">200</span>
+        </div>
+    </header>
+
+    <section id="message-overlay" aria-live="polite">
+        <h1 id="msg-title">ELEVATOR AGENT</h1>
+        <p id="msg-text">
+            INFILTRATE.<br>
+            ENTER RED DOORS TO GET FILES.<br>
+            RIDE ELEVATORS.<br>
+            JUMP & SHOOT LIGHTS.<br>
+            EXIT RIGHT ON FLOOR 1.
+        </p>
+        <button id="start-btn" class="btn" onclick="game.start()">START</button>
+    </section>
+
+    <div id="touch-controls" role="region" aria-label="Game Controls">
+        <div class="dpad">
+            <div class="t-btn d-up" data-key="ArrowUp" role="button" aria-label="Up"></div>
+            <div class="t-btn d-down" data-key="ArrowDown" role="button" aria-label="Down"></div>
+            <div class="t-btn d-left" data-key="ArrowLeft" role="button" aria-label="Left"></div>
+            <div class="t-btn d-right" data-key="ArrowRight" role="button" aria-label="Right"></div>
+        </div>
+        <div class="action-btns">
+            <div class="t-btn a-btn btn-shoot" data-key="f" role="button" aria-label="Fire">FIRE</div>
+            <div class="t-btn a-btn btn-jump" data-key=" " role="button" aria-label="Jump">JUMP</div>
+        </div>
+    </div>
+</main>
+
+<script>
+const CONSTANTS = {
+    GRAVITY: 0.5,
+    FRICTION: 0.6,
+    SPEED: 3,
+    JUMP_FORCE: -9,
+    BULLET_SPEED: 5, 
+    FLOOR_HEIGHT: 150, 
+    PLAYER_W: 24,
+    PLAYER_H: 48,
+    PLAYER_CROUCH_H: 24,
+    ELEVATOR_SPEED: 2.5,
+    ELEVATOR_AUTO_SPEED: 0.5,
+    MAX_HP: 200,
+    FLOOR_THICKNESS: 40
+};
+
+const COLORS = {
+    bg: '#000000',
+    floor: '#823c0b',
+    player: '#d6e855', 
+    playerPants: '#777777',
+    playerSkin: '#ffccaa',
+    enemyPants: '#555555',
+    redDoor: '#ba2323',
+    greyDoor: '#555555',
+    blueDoor: '#2b2b2b',
+    elevator: '#d48e26',
+    cable: '#444444',
+    bullet: '#ffffff',
+    light: '#ffff00',
+    lightOff: '#333300'
+};
+
+const ENEMY_COLORS = ['#e74c3c', '#9b59b6', '#3498db', '#1abc9c', '#f1c40f', '#e67e22', '#ecf0f1'];
+const SKIN_TONES = ['#ffccaa', '#d2b48c', '#8d5524', '#c68642', '#573922'];
+
+class SoundManager {
+    constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.3; 
+        this.masterGain.connect(this.ctx.destination);
+    }
+    resume() {
+        if(this.ctx.state === 'suspended') this.ctx.resume();
+    }
+    playTone(freq, type, duration, slide = 0) {
+        if(this.ctx.state === 'suspended') return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if(slide !== 0) osc.frequency.linearRampToValueAtTime(freq + slide, this.ctx.currentTime + duration);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain); gain.connect(this.masterGain);
+        osc.start(); osc.stop(this.ctx.currentTime + duration);
+    }
+    playNoise(duration) {
+        if(this.ctx.state === 'suspended') return;
+        const bufferSize = this.ctx.sampleRate * duration;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        noise.connect(gain); gain.connect(this.masterGain);
+        noise.start();
+    }
+    shoot() { this.playNoise(0.1); }
+    jump() { this.playTone(150, 'square', 0.2, 100); }
+    pickup() { this.playTone(600, 'sine', 0.1, 200); } 
+    hit() { this.playTone(100, 'sawtooth', 0.2, -50); } 
+    breakLight() { this.playNoise(0.3); }
+    win() { 
+        this.playTone(400, 'square', 0.1);
+        setTimeout(() => this.playTone(500, 'square', 0.1), 100);
+        setTimeout(() => this.playTone(600, 'square', 0.2), 200);
+    }
+    gameOver() {
+        this.playTone(300, 'sawtooth', 0.3, -100);
+        setTimeout(() => this.playTone(200, 'sawtooth', 0.5, -100), 300);
+    }
+}
+
+class Input {
+    constructor() { this.keys = {}; this.init(); }
+    init() {
+        window.addEventListener('keydown', e => {
+            if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight", "Code32"].indexOf(e.code) > -1 || e.key === " ") e.preventDefault();
+            this.keys[e.key] = true; this.keys[e.key.toLowerCase()] = true;
+        });
+        window.addEventListener('keyup', e => { this.keys[e.key] = false; this.keys[e.key.toLowerCase()] = false; });
+        const touchBtns = document.querySelectorAll('.t-btn');
+        touchBtns.forEach(btn => {
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[btn.dataset.key] = true; if(btn.dataset.key === 'ArrowUp') this.keys['ArrowUp'] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[btn.dataset.key] = false; });
+        });
+        if ('ontouchstart' in window || navigator.maxTouchPoints) document.getElementById('touch-controls').style.display = 'block';
+    }
+    isDown(key) {
+        if (key === 'ArrowUp') return this.keys['ArrowUp'] || this.keys['w'];
+        if (key === 'ArrowDown') return this.keys['ArrowDown'] || this.keys['s'];
+        if (key === 'ArrowLeft') return this.keys['ArrowLeft'] || this.keys['a'];
+        if (key === 'ArrowRight') return this.keys['ArrowRight'] || this.keys['d'];
+        if (key === 'Jump') return this.keys[' '] || this.keys['z'];
+        if (key === 'Shoot') return this.keys['f']; 
+        return false;
+    }
+}
+
+class Utils {
+    static rectIntersect(r1, r2) {
+        return !(r2.left > r1.right || r2.right < r1.left || r2.top > r1.bottom || r2.bottom < r1.top);
+    }
+    static random(min, max) { return Math.random() * (max - min) + min; }
+}
+
+class GameObject {
+    constructor(x, y, w, h, color) {
+        this.x = x; this.y = y; this.w = w; this.h = h;
+        this.vx = 0; this.vy = 0;
+        this.color = color;
+        this.markedForDeletion = false;
+    }
+    draw(ctx, camY) {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(Math.round(this.x), Math.round(this.y - camY), this.w, this.h);
+    }
+    getBounds() { return { left: this.x, right: this.x + this.w, top: this.y, bottom: this.y + this.h }; }
+}
+
+class Light extends GameObject {
+    constructor(x, y) {
+        super(x, y, 24, 12, COLORS.light); 
+        this.active = true;
+        this.falling = false;
+        this.anchorY = y;
+        this.dangle = 10; 
+        this.y += this.dangle; 
+    }
+    update(floors) {
+        if (this.falling) {
+            this.vy += CONSTANTS.GRAVITY;
+            this.y += this.vy;
+            for (let f of floors) {
+                if (Utils.rectIntersect(this.getBounds(), {left: f.x, right: f.x+f.w, top: f.y, bottom: f.y+CONSTANTS.FLOOR_THICKNESS})) {
+                    this.markedForDeletion = true;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    draw(ctx, camY) {
+        if (!this.falling) {
+            ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.moveTo(this.x + 12, this.anchorY - camY); 
+            ctx.lineTo(this.x + 12, this.y - camY); 
+            ctx.stroke();
+        }
+        ctx.fillStyle = this.active ? COLORS.light : COLORS.lightOff;
+        ctx.fillRect(Math.round(this.x), Math.round(this.y - camY), this.w, this.h);
+    }
+}
+
+class Door extends GameObject {
+    constructor(x, y, isRed, floor) {
+        super(x, y, 40, 60, isRed ? COLORS.redDoor : COLORS.blueDoor);
+        this.isRed = isRed;
+        this.floor = floor;
+        this.collected = false;
+    }
+    draw(ctx, camY) {
+        let drawColor = this.color;
+        if (this.isRed && this.collected) drawColor = COLORS.greyDoor;
+        ctx.fillStyle = drawColor; ctx.fillRect(Math.round(this.x), Math.round(this.y - camY), this.w, this.h);
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.strokeRect(Math.round(this.x), Math.round(this.y - camY), this.w, this.h);
+        ctx.fillStyle = '#000'; ctx.fillRect(Math.round(this.x + this.w - 10), Math.round(this.y - camY + this.h/2), 6, 6);
+    }
+}
+
+class Elevator extends GameObject {
+    constructor(x, y, minY, maxY) {
+        super(x, y, 60, 10, COLORS.elevator);
+        this.minY = minY;
+        this.maxY = maxY;
+        this.velY = 0; 
+        this.autoDir = Math.random() > 0.5 ? 1 : -1;
+    }
+    draw(ctx, camY) {
+        ctx.fillStyle = COLORS.cable;
+        ctx.fillRect(Math.round(this.x + 10), Math.round(this.minY - camY), 2, this.maxY - this.minY); 
+        ctx.fillRect(Math.round(this.x + this.w - 12), Math.round(this.minY - camY), 2, this.maxY - this.minY); 
+
+        ctx.fillStyle = this.color;
+        ctx.fillRect(Math.round(this.x), Math.round(this.y - camY), this.w, this.h);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(Math.round(this.x + 5), Math.round(this.y - camY + 2), this.w - 10, this.h - 4);
+    }
+}
+
+class Entity extends GameObject {
+    constructor(x, y, w, h, color, skinColor) {
+        super(x, y, w, h, color);
+        this.skinColor = skinColor || COLORS.playerSkin;
+        this.facing = 1; this.grounded = false; this.crouching = false;
+        this.currentElevator = null; 
+        this.hp = CONSTANTS.MAX_HP; this.shootCooldown = 0;
+    }
+    updatePhysics(floors, screenWidth, elevators) {
+        this.lastX = this.x; this.lastY = this.y;
+
+        // X Step
+        if (!this.currentElevator) {
+            this.x += this.vx; 
+            this.vx *= CONSTANTS.FRICTION;
+        } else {
+             this.x += this.vx;
+             this.vx *= CONSTANTS.FRICTION;
+        }
+        
+        // X Collision (Walls/Floor Sides)
+        for (let f of floors) {
+            if (this.x + this.w > f.x && this.x < f.x + f.w && 
+                this.y + this.h > f.y && this.y < f.y + CONSTANTS.FLOOR_THICKNESS) {
+                
+                // If we were left of the wall, stay left
+                if (this.lastX + this.w <= f.x + 5) {
+                    this.x = f.x - this.w;
+                    this.vx = 0;
+                }
+                // If we were right of the wall, stay right
+                else if (this.lastX >= f.x + f.w - 5) {
+                    this.x = f.x + f.w;
+                    this.vx = 0;
+                }
+                // Fallback
+                else {
+                    let centerF = f.x + f.w/2;
+                    let centerP = this.x + this.w/2;
+                    if(centerP < centerF) this.x = f.x - this.w;
+                    else this.x = f.x + f.w;
+                    this.vx = 0;
+                }
+            }
+        }
+
+        // Elevator side collision (Solid Elevator)
+        if(!this.currentElevator) {
+            for(let el of elevators) {
+                if(this.y + this.h > el.y && this.y < el.y + el.h) { // Vertical overlap
+                    if(this.x + this.w > el.x && this.x < el.x + el.w) {
+                         // Push out to closest side
+                         let cx = el.x + el.w/2;
+                         let px = this.x + this.w/2;
+                         if(px < cx) this.x = el.x - this.w;
+                         else this.x = el.x + el.w;
+                         this.vx = 0;
+                    }
+                }
+            }
+        }
+        
+        if (this.x < 0) { this.x = 0; this.vx = 0; }
+        if (this.x + this.w > screenWidth) { this.x = screenWidth - this.w; this.vx = 0; }
+
+        this.grounded = false;
+        
+        // Y Step
+        if (this.currentElevator) {
+            this.y = this.currentElevator.y - this.h;
+            this.vy = 0;
+            this.grounded = true;
+            // Walk off check
+            if (this.x + this.w < this.currentElevator.x || this.x > this.currentElevator.x + this.currentElevator.w) {
+                this.currentElevator = null;
+            }
+        } else {
+            this.vy += CONSTANTS.GRAVITY;
+            this.y += this.vy;
+
+            // Elevator Platform Collision (From Top)
+            for (let el of elevators) {
+                // Must be falling downwards or standing
+                if (this.vy >= 0) {
+                    if (this.x + this.w > el.x && this.x < el.x + el.w) {
+                        // Check if feet are crossing elevator top
+                        let footY = this.y + this.h;
+                        let prevFootY = this.lastY + this.h;
+                        // Tolerance
+                        if (prevFootY <= el.y + 20 && footY >= el.y) {
+                            this.currentElevator = el;
+                            this.y = el.y - this.h;
+                            this.vy = 0;
+                            this.grounded = true;
+                            break; // Snapped
+                        }
+                    }
+                } else {
+                    // Moving UP into elevator bottom
+                    if (this.x + this.w > el.x && this.x < el.x + el.w) {
+                        if (this.y < el.y + el.h && this.lastY >= el.y + el.h - 15) {
+                             this.y = el.y + el.h;
+                             this.vy = 0;
+                        }
+                    }
+                }
+            }
+
+            // Floor Collision (Landing and Ceiling)
+            if (!this.currentElevator) { 
+                for (let f of floors) {
+                    if (this.x + this.w > f.x && this.x < f.x + f.w) {
+                        // Landing
+                        if (this.vy >= 0) {
+                            let bottom = this.y + this.h;
+                            if (bottom >= f.y && bottom <= f.y + CONSTANTS.FLOOR_THICKNESS + this.vy + 5) {
+                                 if (this.lastY + this.h <= f.y + 20) { 
+                                     this.y = f.y - this.h;
+                                     this.vy = 0;
+                                     this.grounded = true;
+                                 }
+                            }
+                        } 
+                        // Ceiling Bonk
+                        else if (this.vy < 0) {
+                            let top = this.y;
+                            let floorBottom = f.y + CONSTANTS.FLOOR_THICKNESS;
+                            if (top < floorBottom && top > f.y) {
+                                if (this.lastY >= floorBottom - 20) {
+                                    this.y = floorBottom;
+                                    this.vy = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (this.shootCooldown > 0) this.shootCooldown--;
+    }
+    drawSprite(ctx, camY, isEnemy) {
+        const drawX = Math.round(this.x);
+        const drawY = Math.round(this.y - camY);
+        
+        const shirtColor = this.color;
+        const pantsColor = isEnemy ? COLORS.enemyPants : COLORS.playerPants;
+        const headColor = this.skinColor;
+
+        let h = this.crouching ? this.h : this.h;
+        
+        // Legs
+        ctx.fillStyle = pantsColor;
+        if (!this.crouching) {
+            if (Math.abs(this.vx) > 0.1) {
+                if (Math.floor(Date.now() / 100) % 2 === 0) {
+                    ctx.fillRect(drawX + 4, drawY + h - 15, 6, 15);
+                    ctx.fillRect(drawX + 14, drawY + h - 15, 6, 12);
+                } else {
+                    ctx.fillRect(drawX + 4, drawY + h - 15, 6, 12);
+                    ctx.fillRect(drawX + 14, drawY + h - 15, 6, 15);
+                }
+            } else {
+                ctx.fillRect(drawX + 4, drawY + h - 15, 6, 15);
+                ctx.fillRect(drawX + 14, drawY + h - 15, 6, 15);
+            }
+        } else {
+            ctx.fillRect(drawX + 2, drawY + h - 10, this.w - 4, 10);
+        }
+
+        // Body
+        ctx.fillStyle = shirtColor;
+        let bodyH = this.crouching ? 14 : 20; 
+        let bodyY = drawY + (this.crouching ? 4 : 13);
+        ctx.fillRect(drawX, bodyY, this.w, bodyH);
+
+        // Head
+        ctx.fillStyle = headColor;
+        let headY = bodyY - 12;
+        ctx.fillRect(drawX + 4, headY, 16, 12);
+
+        // Gun
+        ctx.fillStyle = '#999'; 
+        let armY = bodyY + 6;
+        if (this.facing === 1) {
+            ctx.fillRect(drawX + this.w - 4, armY, 10, 4); 
+        } else {
+            ctx.fillRect(drawX - 6, armY, 10, 4); 
+        }
+    }
+}
+
+class Player extends Entity {
+    constructor(x, y) { 
+        super(x, y, CONSTANTS.PLAYER_W, CONSTANTS.PLAYER_H, COLORS.player, COLORS.playerSkin); 
+        this.docsCollected = 0; 
+        this.inDoor = null; 
+        this.doorTimer = 0;
+    }
+    update(input, floors, elevators, doors, screenWidth) {
+        
+        if (this.inDoor) {
+            this.doorTimer--;
+            if (this.doorTimer <= 0 && (input.isDown('ArrowUp') || input.isDown('ArrowDown'))) {
+                // Exit Door
+                if(!this.inDoor.collected) {
+                    this.inDoor.collected = true; 
+                    this.docsCollected++; 
+                    game.score += 1000; 
+                    game.sounds.pickup();
+                }
+                this.inDoor = null; 
+                this.doorTimer = 20; 
+            }
+            return; 
+        }
+        
+        if (this.doorTimer > 0) this.doorTimer--;
+
+        if (input.isDown('ArrowLeft')) { this.vx -= 1; this.facing = -1; }
+        if (input.isDown('ArrowRight')) { this.vx += 1; this.facing = 1; }
+        if (this.vx > CONSTANTS.SPEED) this.vx = CONSTANTS.SPEED;
+        if (this.vx < -CONSTANTS.SPEED) this.vx = -CONSTANTS.SPEED;
+
+        if (input.isDown('ArrowDown') && this.grounded && !this.currentElevator) {
+            if (!this.crouching) { this.crouching = true; this.y += (CONSTANTS.PLAYER_H - CONSTANTS.PLAYER_CROUCH_H); this.h = CONSTANTS.PLAYER_CROUCH_H; }
+        } else {
+            if (this.crouching) { this.crouching = false; this.y -= (CONSTANTS.PLAYER_H - CONSTANTS.PLAYER_CROUCH_H); this.h = CONSTANTS.PLAYER_H; }
+        }
+        if (input.isDown('Jump') && this.grounded && !this.crouching) {
+            this.vy = CONSTANTS.JUMP_FORCE; this.grounded = false; this.currentElevator = null;
+            game.sounds.jump();
+        }
+
+        if (this.currentElevator) {
+            // Manual overrides auto
+            if (input.isDown('ArrowUp')) { 
+                this.currentElevator.y -= CONSTANTS.ELEVATOR_SPEED; 
+                this.currentElevator.velY = -CONSTANTS.ELEVATOR_SPEED; 
+            } else if (input.isDown('ArrowDown')) { 
+                this.currentElevator.y += CONSTANTS.ELEVATOR_SPEED; 
+                this.currentElevator.velY = CONSTANTS.ELEVATOR_SPEED; 
+            }
+            
+            if (this.currentElevator.y < this.currentElevator.minY) this.currentElevator.y = this.currentElevator.minY;
+            if (this.currentElevator.y > this.currentElevator.maxY) this.currentElevator.y = this.currentElevator.maxY;
+        }
+
+        if (input.isDown('ArrowUp') && this.grounded && !this.currentElevator && this.doorTimer <= 0) {
+            const myCenter = this.x + this.w/2;
+            for(let d of doors) {
+                if (d.isRed && !d.collected && Math.abs(myCenter - (d.x + d.w/2)) < 20 && Math.abs((this.y + this.h) - (d.y + d.h)) < 10) {
+                    this.inDoor = d;
+                    this.doorTimer = 20; 
+                    this.x = d.x + d.w/2 - this.w/2; 
+                    this.vx = 0;
+                    break;
+                }
+            }
+        }
+
+        this.updatePhysics(floors, screenWidth, elevators);
+
+        if (!this.currentElevator) {
+            for (let el of elevators) {
+                if (this.x + this.w > el.x && this.x < el.x + el.w) {
+                    if (Math.abs((this.y + this.h) - el.y) < 5) { this.currentElevator = el; this.vy = 0; this.y = el.y - this.h; break; }
+                    if (this.vy >= 0 && this.y + this.h >= el.y && this.y + this.h <= el.y + 15) { this.currentElevator = el; this.vy = 0; this.y = el.y - this.h; break; }
+                }
+            }
+        }
+    }
+    draw(ctx, camY) { 
+        if (this.inDoor) return;
+        this.drawSprite(ctx, camY, false); 
+    }
+}
+
+class Enemy extends Entity {
+    constructor(x, y, floorLevel, color, skinColor) { 
+        super(x, y, CONSTANTS.PLAYER_W, CONSTANTS.PLAYER_H, color, skinColor); 
+        this.floorLevel = floorLevel; 
+        this.timer = 0; 
+        this.activeBullet = null; 
+    }
+    updateAI(player, floors, screenWidth, elevators) {
+        const dx = player.x - this.x; const dy = player.y - this.y;
+        const dist = Math.sqrt(dx*dx + dy*dy); const onSameFloor = Math.abs(dy) < 50;
+        
+        // Elevator Attachment Logic for Enemies
+        if (!this.currentElevator) {
+            for (let el of elevators) {
+                if (this.x + this.w > el.x && this.x < el.x + el.w) {
+                    // Attach to elevator if close enough
+                    if (Math.abs((this.y + this.h) - el.y) < 5) { 
+                        this.currentElevator = el; this.vy = 0; this.y = el.y - this.h; break; 
+                    }
+                    if (this.vy >= 0 && this.y + this.h >= el.y && this.y + this.h <= el.y + 15) { 
+                        this.currentElevator = el; this.vy = 0; this.y = el.y - this.h; break; 
+                    }
+                }
+            }
+        }
+
+        // AI Logic: Patrol Only
+        if (this.currentElevator) {
+            // Get off randomly if near a floor
+            let nearFloor = false;
+            let targetY = 0;
+            for(let f of floors) {
+                if(Math.abs(this.y + this.h - f.y) < 10) { nearFloor = true; targetY = f.y; break; }
+            }
+            if (nearFloor && Math.random() < 0.02) {
+                this.currentElevator = null; 
+                this.y = targetY - this.h;
+                this.vx = (Math.random()>0.5?1:-1) * 2;
+            }
+        } else {
+            if (this.timer <= 0) { 
+                this.timer = Utils.random(50, 150); 
+                this.facing = Math.random() > 0.5 ? 1 : -1; 
+            }
+            this.timer--; 
+            
+            if(this.x < 10) this.facing = 1;
+            if(this.x > screenWidth - 30) this.facing = -1;
+
+            // Ledge Detection
+            let lookAhead = this.facing * 10; // Look slightly ahead
+            let nextX = this.x + (this.w/2) + lookAhead;
+            let footing = false;
+            
+            // Check floors
+            for(let f of floors) {
+                if(nextX >= f.x && nextX <= f.x + f.w) {
+                    if(Math.abs((this.y + this.h) - f.y) < 10) {
+                        footing = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Check elevators (as bridges)
+            if (!footing) {
+                 for(let el of elevators) {
+                     if (nextX >= el.x && nextX <= el.x + el.w) {
+                         // Only if elevator is aligned with current floor level
+                         if (Math.abs((this.y + this.h) - el.y) < 20) { 
+                             footing = true;
+                             break;
+                         }
+                     }
+                 }
+            }
+
+            if (!footing) {
+                this.facing *= -1; // Turn around
+                this.vx = 0;
+            } else {
+                this.vx += this.facing * 0.3;
+            }
+        }
+
+        // --- SHOOTING ---
+        let shoot = false;
+        // Same floor
+        if (onSameFloor && dist < 400) {
+            if (this.facing === 1 && player.x > this.x) shoot = true;
+            if (this.facing === -1 && player.x < this.x) shoot = true;
+        }
+        // Vertical check (elevator snipe)
+        if (Math.abs(dx) < 300 && Math.abs(dy) < 50) shoot = true;
+
+        if (shoot && this.shootCooldown <= 0 && Math.random() < 0.05) {
+            this.facing = dx > 0 ? 1 : -1;
+            game.shoot(this);
+        }
+        
+        if (this.vx > CONSTANTS.SPEED * 0.5) this.vx = CONSTANTS.SPEED * 0.5;
+        if (this.vx < -CONSTANTS.SPEED * 0.5) this.vx = -CONSTANTS.SPEED * 0.5;
+        this.updatePhysics(floors, screenWidth, elevators);
+    }
+    draw(ctx, camY) { this.drawSprite(ctx, camY, true); }
+}
+
+class Bullet extends GameObject {
+    constructor(x, y, dir, isEnemy = false) { super(x, y, 8, 4, COLORS.bullet); this.vx = dir * CONSTANTS.BULLET_SPEED; this.isEnemy = isEnemy; this.life = 120; }
+    update(floors) { 
+        this.x += this.vx; this.life--; 
+        if (this.life <= 0) this.markedForDeletion = true; 
+        
+        for(let f of floors) {
+            if(this.x + this.w > f.x && this.x < f.x + f.w &&
+               this.y + this.h > f.y && this.y < f.y + CONSTANTS.FLOOR_THICKNESS) {
+                this.markedForDeletion = true;
+            }
+        }
+    }
+}
+
+class Particle {
+    constructor(x, y, color) { this.x = x; this.y = y; this.size = Utils.random(4, 8); this.vx = (Math.random() - 0.5) * 6; this.vy = (Math.random() - 0.5) * 6; this.life = 15; this.color = color; }
+    update() { this.x += this.vx; this.y += this.vy; this.life--; }
+    draw(ctx, camY) { if(this.life <= 0) return; ctx.fillStyle = this.color; ctx.fillRect(Math.round(this.x), Math.round(this.y - camY), this.size, this.size); }
+}
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.sounds = new SoundManager();
+        this.input = new Input();
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.gameState = 'START'; this.level = 1; this.darknessTimer = 0;
+    }
+    resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; this.width = this.canvas.width; this.height = this.canvas.height; this.ctx.imageSmoothingEnabled = false; }
+    reset() {
+        this.player = new Player(30, 50); 
+        this.enemies = []; this.bullets = []; this.particles = [];
+        this.elevators = []; this.floors = [];
+        this.doors = []; this.lights = [];
+        this.score = this.score || 0; this.camY = 0; this.darknessTimer = 0;
+        this.generateLevel();
+    }
+    generateLevel() {
+        const floorH = CONSTANTS.FLOOR_HEIGHT;
+        const totalF = 10 * this.level; 
+        
+        let floorGaps = Array(totalF).fill().map(() => []);
+
+        // Fully Randomized Shafts Logic
+        let shafts = [];
+        let lastX = -1;
+
+        // Create shafts roughly every 6-8 floors
+        for(let i=0; i<totalF; i+=6) {
+             let x;
+             let attempts = 0;
+             // Find a valid X position for the shaft
+             do {
+                 x = Utils.random(100, this.width - 180);
+                 attempts++;
+             } while(lastX !== -1 && Math.abs(x - lastX) < 250 && attempts < 15);
+             
+             // Fallback if tight
+             if (attempts >= 15) x = (lastX < this.width/2) ? this.width - 150 : 150;
+
+             lastX = x;
+
+             let end = Math.min(i + 8, totalF - 1);
+             shafts.push({x: x, w: 80, start: i, end: end});
+        }
+        
+        shafts.forEach(s => {
+            let eMinY = s.start * floorH + 150;
+            let eMaxY = s.end * floorH + 150;
+            let eX = s.x + 10;
+            let initialY = eMinY; 
+            this.elevators.push(new Elevator(eX, initialY, eMinY, eMaxY));
+            for(let i = s.start; i <= s.end; i++) {
+                floorGaps[i].push({start: s.x, end: s.x + s.w});
+            }
+        });
+
+        for (let i = 0; i < totalF; i++) {
+            let y = i * floorH + 150;
+            let gaps = floorGaps[i];
+            
+            if (i === totalF - 1) {
+                gaps = []; // Solid bottom
+            } else {
+                gaps.sort((a,b) => a.start - b.start);
+                let merged = [];
+                if(gaps.length > 0) {
+                    let curr = gaps[0];
+                    for(let j=1; j<gaps.length; j++) {
+                        if(gaps[j].start < curr.end) { curr.end = Math.max(curr.end, gaps[j].end); } 
+                        else { merged.push(curr); curr = gaps[j]; }
+                    }
+                    merged.push(curr);
+                }
+                gaps = merged;
+            }
+
+            // Left Landing Pad (Numbers)
+            this.floors.push({x: 0, y: y, w: 100, level: i});
+
+            let curX = 100;
+            gaps.forEach(g => {
+                if (g.start > curX) { this.floors.push({x: curX, y: y, w: g.start - curX, level: i}); }
+                curX = g.end;
+            });
+            if (curX < this.width) { this.floors.push({x: curX, y: y, w: this.width - curX, level: i}); }
+            
+            // Limit enemies per floor to avoid overcrowding
+            let enemiesOnFloor = 0;
+            let segs = this.floors.filter(f => f.level === i);
+            segs.forEach(seg => {
+                if (seg.w < 60) return;
+                
+                let forceFile = (this.doors.filter(d=>d.isRed).length < 5 && Math.random() < 0.2);
+                
+                if ((Math.random() < 0.45 || forceFile) && seg.x > 100) {
+                    let dx = Utils.random(seg.x + 20, seg.x + seg.w - 60);
+                    let isRed = Math.random() < 0.35 || forceFile;
+                    this.doors.push(new Door(dx, y - 60, isRed, i));
+                }
+                
+                // One enemy per floor max (mostly)
+                if (i > 0 && i < totalF - 1 && enemiesOnFloor < 1 && Math.random() < 0.5 && seg.x > 100) {
+                    let ex = Utils.random(seg.x + 10, seg.x + seg.w - 30);
+                    let eCol = ENEMY_COLORS[Math.floor(Math.random()*ENEMY_COLORS.length)];
+                    let sCol = SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)];
+                    this.enemies.push(new Enemy(ex, y - CONSTANTS.PLAYER_H, i, eCol, sCol));
+                    enemiesOnFloor++;
+                }
+                if (i>0 && Math.random() < 0.3 && this.lights.filter(l => l.y > y - 200 && l.y < y).length === 0) {
+                     let ceilingY = (i-1)*floorH + 150 + CONSTANTS.FLOOR_THICKNESS;
+                     let lx = seg.x + seg.w/2;
+                     this.lights.push(new Light(lx, ceilingY));
+                }
+            });
+        }
+        
+        while (this.doors.filter(d => d.isRed).length < 5) {
+             let randDoor = this.doors[Math.floor(Math.random() * this.doors.length)];
+             if (!randDoor.isRed) randDoor.isRed = true;
+        }
+        
+        this.totalDocs = this.doors.filter(d => d.isRed).length;
+    }
+
+    start() { 
+        document.getElementById('message-overlay').style.display = 'none'; 
+        this.sounds.resume();
+        this.score = 0; 
+        this.level = 1; 
+        this.reset(); 
+        this.gameState = 'PLAY'; 
+        this.loop(); 
+    }
+    
+    nextLevel() { 
+        this.level++; 
+        this.score += 500; 
+        this.sounds.win();
+        this.reset(); 
+    }
+    
+    gameOver(won) { 
+        this.gameState = 'LOSE'; 
+        const ol = document.getElementById('message-overlay'); 
+        ol.style.display = 'block'; 
+        document.getElementById('msg-title').innerText = "GAME OVER"; 
+        document.getElementById('msg-text').innerHTML = `SCORE: ${this.score}`; 
+        document.getElementById('start-btn').innerText = "RESTART";
+        this.level = 1; 
+        this.sounds.gameOver();
+    }
+    
+    shoot(shooter) { 
+        if (shooter instanceof Enemy && shooter.activeBullet && !shooter.activeBullet.markedForDeletion) return;
+        shooter.shootCooldown = 40; 
+        let bx = shooter.facing === 1 ? shooter.x + shooter.w : shooter.x - 8; 
+        let by = shooter.crouching ? shooter.y + 10 : shooter.y + 12; 
+        let b = new Bullet(bx, by, shooter.facing, shooter instanceof Enemy);
+        this.bullets.push(b); 
+        this.sounds.shoot();
+        if (shooter instanceof Enemy) shooter.activeBullet = b;
+    }
+    
+    spawnParticles(x, y, color) { for(let i=0; i<8; i++) this.particles.push(new Particle(x, y, color)); }
+    
+    checkSquish(ent) {
+        if (ent.currentElevator) {
+            // Safety Shunt if hitting ceiling while going UP
+            if(ent.currentElevator.velY < 0) {
+                let topY = ent.y;
+                for(let f of this.floors) {
+                    if (ent.x + ent.w > f.x && ent.x < f.x + f.w) {
+                        let floorBottom = f.y + CONSTANTS.FLOOR_THICKNESS;
+                        if (topY < floorBottom && topY > f.y) {
+                            // HIT CEILING - DETACH AND FALL
+                            ent.currentElevator = null;
+                            ent.y = floorBottom + 1;
+                            ent.vy = 0;
+                            return false; 
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!ent.currentElevator) { 
+            for (let el of this.elevators) {
+                if (ent.x + ent.w > el.x && ent.x < el.x + el.w) {
+                    if (el.y + el.h > ent.y && el.y < ent.y) {
+                        if (el.velY > 0) {
+                            // SQUISH CHECK: Must be touching solid floor
+                            let trapped = false;
+                            for(let f of this.floors) {
+                                // Check if standing on solid ground
+                                if (ent.x + ent.w > f.x && ent.x < f.x + f.w) {
+                                    if (Math.abs((ent.y + ent.h) - f.y) < 10) trapped = true;
+                                }
+                            }
+                            if (trapped) return true; // CRUSHED
+                            
+                            // Otherwise just push down
+                            ent.y = el.y + el.h; ent.vy = el.velY;
+                        } else {
+                            // Bump head
+                            ent.y = el.y + el.h; ent.vy = 0;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    update() {
+        if (this.gameState !== 'PLAY') return;
+        if (this.darknessTimer > 0) this.darknessTimer--;
+        
+        this.elevators.forEach(e => {
+            e.y += e.autoDir * CONSTANTS.ELEVATOR_AUTO_SPEED;
+            if (e.y <= e.minY) { e.y = e.minY; e.autoDir = 1; }
+            if (e.y >= e.maxY) { e.y = e.maxY; e.autoDir = -1; }
+            e.velY = e.autoDir * CONSTANTS.ELEVATOR_AUTO_SPEED; 
+        });
+
+        this.player.update(this.input, this.floors, this.elevators, this.doors, this.width);
+        if (this.checkSquish(this.player)) { this.player.hp = 0; this.gameOver(false); this.spawnParticles(this.player.x, this.player.y, '#f00'); }
+        if (this.input.isDown('Shoot') && this.player.shootCooldown <= 0) this.shoot(this.player);
+
+        let targetCamY = this.player.y - this.height / 2;
+        let totalF = 10 * this.level;
+        const bottomOfWorld = (totalF - 1) * CONSTANTS.FLOOR_HEIGHT + 150 + CONSTANTS.FLOOR_THICKNESS; 
+        const maxScroll = bottomOfWorld - this.height;
+        
+        if (targetCamY < 0) targetCamY = 0; if (targetCamY > maxScroll) targetCamY = maxScroll;
+        this.camY += (targetCamY - this.camY) * 0.1;
+
+        this.enemies.forEach(e => {
+            if (Utils.rectIntersect(this.player.getBounds(), e.getBounds())) {
+                if (this.player.x < e.x) { this.player.x -= 2; e.x += 2; }
+                else { this.player.x += 2; e.x -= 2; }
+            }
+        });
+
+        for (let i = 0; i < this.enemies.length; i++) {
+            for (let j = i + 1; j < this.enemies.length; j++) {
+                let e1 = this.enemies[i];
+                let e2 = this.enemies[j];
+                if (Math.abs(e1.x - e2.x) < 20 && Math.abs(e1.y - e2.y) < 10) {
+                    if (e1.x < e2.x) { e1.x -= 2; e2.x += 2; } else { e1.x += 2; e2.x -= 2; }
+                    e1.facing *= -1; e2.facing *= -1;
+                    e1.vx = e1.facing * Math.abs(e1.vx);
+                    e2.vx = e2.facing * Math.abs(e2.vx);
+                }
+            }
+        }
+
+        this.enemies.forEach(e => {
+            e.updateAI(this.player, this.floors, this.width, this.elevators);
+            if(this.checkSquish(e)) { e.markedForDeletion = true; this.score += 200; this.spawnParticles(e.x, e.y, COLORS.enemy); this.sounds.hit(); }
+        });
+        this.lights.forEach(l => { if (l.update(this.floors)) { this.spawnParticles(l.x, l.y, '#ff0'); this.darknessTimer = Math.max(this.darknessTimer, 600); this.sounds.breakLight(); } });
+        this.lights = this.lights.filter(l => !l.markedForDeletion);
+        this.bullets.forEach(b => {
+            b.update(this.floors); 
+            if (b.x < 0 || b.x > this.width) b.markedForDeletion = true;
+            if (!b.markedForDeletion) {
+                if (b.isEnemy) {
+                    if (Utils.rectIntersect(this.player.getBounds(), b.getBounds())) { 
+                        this.player.hp -= 20; b.markedForDeletion = true; this.spawnParticles(this.player.x, this.player.y, '#f00'); this.sounds.hit();
+                        if (this.player.hp <= 0) this.gameOver(false); 
+                    }
+                } else {
+                    this.enemies.forEach(e => { if (Utils.rectIntersect(e.getBounds(), b.getBounds())) { e.markedForDeletion = true; b.markedForDeletion = true; this.score += 100; this.spawnParticles(e.x, e.y, COLORS.enemy); this.sounds.hit(); } });
+                    this.lights.forEach(l => { if (l.active && !l.falling && Utils.rectIntersect(l.getBounds(), b.getBounds())) { l.active = false; l.falling = true; b.markedForDeletion = true; this.darknessTimer = 600; this.sounds.breakLight(); } });
+                }
+            }
+        });
+        this.bullets = this.bullets.filter(b => !b.markedForDeletion);
+        this.enemies = this.enemies.filter(e => !e.markedForDeletion);
+        this.particles.forEach(p => p.update());
+        this.particles = this.particles.filter(p => p.life > 0);
+
+        let bottomY = (totalF - 1) * CONSTANTS.FLOOR_HEIGHT + 150;
+        if (this.player.y > bottomY - 100 && this.player.x > this.width - 50) this.nextLevel();
+        
+        document.getElementById('score-val').innerText = this.score;
+        document.getElementById('level-val').innerText = this.level;
+        document.getElementById('hp-val').innerText = this.player.hp;
+        document.getElementById('file-val').innerText = `${this.player.docsCollected}/${this.totalDocs}`;
+    }
+
+    draw() {
+        this.ctx.fillStyle = COLORS.bg; this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        this.elevators.forEach(e => {
+            this.ctx.fillStyle = COLORS.cable;
+            this.ctx.fillRect(Math.round(e.x + 10), Math.round(e.minY - this.camY), 2, e.maxY - e.minY); 
+            this.ctx.fillRect(Math.round(e.x + e.w - 12), Math.round(e.minY - this.camY), 2, e.maxY - e.minY); 
+        });
+
+        this.floors.forEach(f => {
+            this.ctx.fillStyle = COLORS.floor;
+            this.ctx.fillRect(Math.round(f.x), Math.round(f.y - this.camY), f.w, CONSTANTS.FLOOR_THICKNESS);
+            if (f.x === 0) { 
+                this.ctx.fillStyle = '#000000'; this.ctx.font = '20px "Press Start 2P"';
+                let totalF = 10 * this.level;
+                let num = totalF - f.level; 
+                if (num > 0) { 
+                     this.ctx.textAlign = 'center';
+                     this.ctx.textBaseline = 'middle';
+                     this.ctx.fillText(num, f.x + f.w/2, f.y - this.camY + CONSTANTS.FLOOR_THICKNESS/2);
+                     this.ctx.textAlign = 'start';
+                     this.ctx.textBaseline = 'alphabetic';
+                }
+            }
+        });
+        
+        this.lights.forEach(l => l.draw(this.ctx, this.camY));
+        this.doors.forEach(d => d.draw(this.ctx, this.camY));
+        this.elevators.forEach(e => e.draw(this.ctx, this.camY)); 
+
+        let totalFloors = 10 * this.level;
+        let floor1Y = (totalFloors - 1) * CONSTANTS.FLOOR_HEIGHT + 150;
+        
+        // Always show exit
+        this.ctx.fillStyle = '#2ecc71';
+        let arrowX = this.width - 20; 
+        let arrowY = floor1Y - this.camY - 20;
+        
+        if (Math.floor(Date.now() / 200) % 2 === 0) { 
+            this.ctx.font = '16px "Press Start 2P"';
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText("EXIT >", arrowX, arrowY);
+            this.ctx.textAlign = 'start';
+        }
+
+        this.enemies.forEach(e => e.draw(this.ctx, this.camY));
+        this.player.draw(this.ctx, this.camY);
+        this.bullets.forEach(b => b.draw(this.ctx, this.camY));
+        this.particles.forEach(p => p.draw(this.ctx, this.camY));
+
+        if (this.darknessTimer > 0) {
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; 
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+    }
+    loop() { if (this.gameState === 'PLAY') requestAnimationFrame(() => this.loop()); this.update(); this.draw(); }
+}
+
+const game = new Game();
+document.getElementById('message-overlay').style.display = 'block';
+</script>
+</body>
+</html>
